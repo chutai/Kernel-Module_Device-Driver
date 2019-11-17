@@ -609,13 +609,13 @@ void *control(void *arg)
         char input = getchar();
         if (STATIC_STATUS != snake_moving_status)
         {
-            if (('a' == input) || (LEFT == Xbox_Direction) && (MOVING_RIGHT != snake_moving_type))
+            if ((('a' == input) || (LEFT == Xbox_Direction)) && (MOVING_RIGHT != snake_moving_type))
                 snake_moving_type = MOVING_LEFT;
-            else if (('s' == input) || (DOWN == Xbox_Direction) && (MOVING_UP != snake_moving_type))
+            else if ((('s' == input) || (DOWN == Xbox_Direction)) && (MOVING_UP != snake_moving_type))
                 snake_moving_type = MOVING_DOWN;
-            else if (('d' == input) || (RIGHT == Xbox_Direction) && (MOVING_LEFT != snake_moving_type))
+            else if ((('d' == input) || (RIGHT == Xbox_Direction)) && (MOVING_LEFT != snake_moving_type))
                 snake_moving_type = MOVING_RIGHT;
-            else if (('w' == input) || (UP == Xbox_Direction) && (MOVING_DOWN != snake_moving_type))
+            else if ((('w' == input) || (UP == Xbox_Direction)) && (MOVING_DOWN != snake_moving_type))
                 snake_moving_type = MOVING_UP;
 
             snake_moving_status = STATIC_STATUS;
@@ -639,12 +639,19 @@ void *get_Dir_From_Xbox(void *arg)
     if (true == isOpen)
     {
         Xbox_Direction = get_Direction();
+        if ((LEFT == Xbox_Direction) && (MOVING_RIGHT != snake_moving_type))
+            snake_moving_type = MOVING_LEFT;
+        else if ((DOWN == Xbox_Direction) && (MOVING_UP != snake_moving_type))
+            snake_moving_type = MOVING_DOWN;
+        else if ((RIGHT == Xbox_Direction) && (MOVING_LEFT != snake_moving_type))
+            snake_moving_type = MOVING_RIGHT;
+        else if ((UP == Xbox_Direction) && (MOVING_DOWN != snake_moving_type))
+            snake_moving_type = MOVING_UP;
     }
     else
     {
         isOpen = open_Device();
     }
-    
 }
 int main(void)
 {
@@ -662,7 +669,7 @@ int main(void)
         {
             snake_head = snake_new_game(snake_head);
             snake_game_life--;
-            
+
             pthread_mutex_init(&mutex, NULL);
             pthread_create(&thread_id[0], NULL, get_Dir_From_Xbox, NULL);
             pthread_create(&thread_id[1], NULL, backend, NULL);

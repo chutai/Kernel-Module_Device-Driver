@@ -60,6 +60,7 @@ enum dir get_Direction()
 
             }
         }
+        return dir_of_xbox;
     }
 }
 
