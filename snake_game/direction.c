@@ -51,55 +51,67 @@ enum dir get_Direction()
             if (xUP == UP_DOWN_LEFT_RIGHT && valid_button(5, get_Byte[5]))
             {
                 dir_of_xbox = UP;
-                while (0 == (int8_t)get_Byte[5])
-                {
-                    read(fd, &get_Byte, MAX_SIZE);
-                }
+                // while (0 != (int8_t)get_Byte[5])
+                // {
+                //     read(fd, &get_Byte, MAX_SIZE);
+                // }
             }
             else if (xDOWN == UP_DOWN_LEFT_RIGHT && valid_button(5, get_Byte[5]))
             {
                 dir_of_xbox = DOWN;
-                while (0 == (int8_t)get_Byte[5])
-                {
-                    read(fd, &get_Byte, MAX_SIZE);
-                }
+                // while (0 != (int8_t)get_Byte[5])
+                // {
+                //     read(fd, &get_Byte, MAX_SIZE);
+                // }
             }
             else if (xLEFT == UP_DOWN_LEFT_RIGHT && valid_button(5, get_Byte[5]))
             {
                 dir_of_xbox = LEFT;
-                while (0 == (int8_t)get_Byte[5])
-                {
-                    read(fd, &get_Byte, MAX_SIZE);
-                }
+                // while (0 != (int8_t)get_Byte[5])
+                // {
+                //     read(fd, &get_Byte, MAX_SIZE);
+                // }
             }
             else if (xRIGHT == UP_DOWN_LEFT_RIGHT && valid_button(5, get_Byte[5]))
             {
                 dir_of_xbox = RIGHT;
-                while (0 == (int8_t)get_Byte[5])
-                {
-                    read(fd, &get_Byte, MAX_SIZE);
-                }
+                // while (0 != (int8_t)get_Byte[5])
+                // {
+                //     read(fd, &get_Byte, MAX_SIZE);
+                // }
             }
             /* Group ABXY */
-            if (xA == A_B_X_Y && valid_button(4, get_Byte[4]))
+            else if (xA == A_B_X_Y && valid_button(4, get_Byte[4]))
             {
                 dir_of_xbox = PAUSE;
-                while ((0 == (int)get_Byte[4]))
+                while ((0 != (int)get_Byte[4]))
                 {
                     read(fd, &get_Byte, MAX_SIZE);
                 }
             }
             else if (xB == A_B_X_Y && valid_button(4, get_Byte[4]))
             {
+                while (0 != (int8_t)get_Byte[5])
+                {
+                    read(fd, &get_Byte, MAX_SIZE);
+                }
                 dir_of_xbox = QUIT;
             }
             else if (xX == A_B_X_Y && valid_button(4, get_Byte[4]))
             {
+                // while (0 != (int8_t)get_Byte[5])
+                // {
+                //     read(fd, &get_Byte, MAX_SIZE);
+                // }
                 dir_of_xbox = X;
             }
             else if ((xY) == A_B_X_Y && valid_button(4, get_Byte[4]))
             {
-                printf("%c:%d\n", get_char(xY), get_Byte[4]);
+                // while (0 != (int8_t)get_Byte[5])
+                // {
+                //     read(fd, &get_Byte, MAX_SIZE);
+                // }
+                //printf("%c:%d\n", get_char(xY), get_Byte[4]);
                 dir_of_xbox = Y;
             }
         }
@@ -114,8 +126,14 @@ enum dir get_Direction()
         if (-1 != read(fd, &get_Byte, MAX_SIZE))
         {
             int8_t UP_DOWN_LEFT_RIGHT = (int8_t)get_Byte[5];
-            int A_B_X_Y = (int)get_Byte[4];
-            if (0 != UP_DOWN_LEFT_RIGHT)
+            int8_t A_B_X_Y = (int8_t)get_Byte[4];
+            if (xY == A_B_X_Y)
+            {
+                dir_of_xbox = Y;
+                return dir_of_xbox;
+                //printf("%c:%d\n", get_char(xY), get_Byte[4]);
+            }
+            if ((0 != UP_DOWN_LEFT_RIGHT) && (valid_button(5, (int8_t)get_Byte[5])))
             {
                 while (1 < UP_DOWN_LEFT_RIGHT)
                 {
@@ -136,12 +154,17 @@ enum dir get_Direction()
                     dir_of_xbox = QUIT;
                 else if (xX == bind_array[position])
                     dir_of_xbox = X;
+                // do
+                // {
+                //     read(fd, &get_Byte, MAX_SIZE);
+                // } while (0 != (int8_t)get_Byte[5]);
             }
             if (0 != A_B_X_Y)
             {
                 if (xY == A_B_X_Y)
                 {
                     dir_of_xbox = Y;
+                    return dir_of_xbox;
                     //printf("%c:%d\n", get_char(xY), get_Byte[4]);
                 }
                 while (1 < A_B_X_Y)
@@ -164,6 +187,10 @@ enum dir get_Direction()
                     dir_of_xbox = QUIT;
                 else if (xX == bind_array[position])
                     dir_of_xbox = X;
+                // do
+                // {
+                //     read(fd, &get_Byte, MAX_SIZE);
+                // } while (0 != (int8_t)get_Byte[4]);
             }
         }
         return dir_of_xbox;
@@ -173,10 +200,10 @@ enum dir get_Direction()
 bool bind_key()
 {
     printf("MOVE:\ta:LEFT \td:RIGHT \n\tw:UP \ts:DOWN\n\tA:PAUSE\tB:QUIT\n");
-    isBind = true;
+
     char get_Byte[MAX_SIZE];
-    int key_bind = 0, key_function = 0;
-    printf("%s\n","Do you want bind a Key: "); /* nhap A, bind voi LEFT */
+    int8_t key_bind = 0, key_function = 0;
+    printf("%s\n", "Do you want bind a Key: "); /* nhap A, bind voi LEFT */
     while (1)
     {
         //printf("in wwhile bind: \n");
@@ -184,16 +211,16 @@ bool bind_key()
         {
             if (0 != (int8_t)get_Byte[5]) // && valid_button(5, (int8_t)get_Byte[5]))
             {
-                key_bind = (int)get_Byte[5];
+                key_bind = (int8_t)get_Byte[5];
                 do
                 {
                     read(fd, &get_Byte, MAX_SIZE);
                 } while (0 != (int8_t)get_Byte[5]);
                 break;
             }
-            if (0 != (int)get_Byte[4]) //&& valid_button(4, (int)get_Byte[4]))
+            if (0 != (int8_t)get_Byte[4]) //&& valid_button(4, (int)get_Byte[4]))
             {
-                key_bind = (int)get_Byte[4];
+                key_bind = (int8_t)get_Byte[4];
                 do
                 {
                     read(fd, &get_Byte, MAX_SIZE);
@@ -202,18 +229,19 @@ bool bind_key()
             }
         }
     }
-    
+
     //printf("pass wwhile bind: \n");
     if ((0 != key_bind) && (xY != key_bind))
     {
+        isBind = true;
         char temp = get_char(key_bind);
         printf("%c", temp);
-        printf("%s"," ---> Key: ");
+        printf("%s", " ---> Key: ");
     }
     else
     {
-        printf("Cancel!\n");
-        usleep(10000);
+        isBind = false;
+        printf("No! Cancel!\n");
         return false;
     }
 
@@ -230,9 +258,9 @@ bool bind_key()
                 } while (0 != (int8_t)get_Byte[5]);
                 break;
             }
-            if (0 != (int)get_Byte[4]) //&& valid_button(4, (int)get_Byte[4]))
+            if (0 != (int8_t)get_Byte[4]) //&& valid_button(4, (int)get_Byte[4]))
             {
-                key_function = (int)get_Byte[4];
+                key_function = (int8_t)get_Byte[4];
                 do
                 {
                     read(fd, &get_Byte, MAX_SIZE);
@@ -256,7 +284,6 @@ bool bind_key()
     {
         printf("%c\n", get_char(key_function));
         printf("Bind success\n");
-        usleep(10000);
         return true;
     }
     else
