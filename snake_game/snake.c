@@ -5,11 +5,14 @@
 #include <pthread.h>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <signal.h>
 #include "direction.h"
-#define ROW 40
-#define COL 40
+
+#define ROW 20
+#define COL 20
 bool isOpen = false; /* check for open the Xbox */
 enum dir Xbox_Direction = EMPTY;
+volatile char input;
 enum elem_type
 {
     EMPTY_BLOCK,
@@ -213,7 +216,7 @@ void map_display()
         printf("\r\n");
     }
     printf_col_buff((int)w.ws_col);
-    printf("POINT: %d \tLENGTH: %d \tLIFE: %d ", snake_game_point, snake_lengh, snake_game_life);
+    printf("POINT: %d\tLENGTH: %d\tA:PAUSE & B:QUIT", snake_game_point, snake_lengh);
     return;
 }
 
@@ -251,7 +254,7 @@ void map_display_beta()
         }
     }
     gotoxy(ROW + 1, 1);
-    printf("POINT: %d \tLENGTH: %d \tLIFE: %d ", snake_game_point, snake_lengh, snake_game_life);
+    printf("POINT: %d \tLENGTH: %d \tPress P to Pause", snake_game_point, snake_lengh);
     return;
 }
 
@@ -449,9 +452,10 @@ struct snake *snake_moving(struct snake *head, uint8_t type)
     }
     else if (WALL_BLOCK == map[x][y])
     {
-        sleep(1);
+        usleep(100000);
         tmp = snake_delete_all(head);
         snake_game_status = DIED_STATUS;
+        
     }
     else if (SNAKE_BLOCK == map[x][y])
     {
@@ -478,8 +482,8 @@ void game_display_pick_level()
     printf("4. I'm a expert engineer\n");
     printf("5. I'm a master\n");
     printf("6. I am Iron man\n");
-    char input;
-    scanf(" %c", &input);
+    char input = '1';
+    // scanf(" %c", &input);
     printf("\033[H\033[J");
     switch (input)
     {
@@ -522,8 +526,8 @@ void game_display_pick_map()
 {
     printf("\033[H\033[J");
     printf("PICK MAP [0] [1] [2] [3] [4]?\n");
-    char input;
-    scanf(" %c", &input);
+    char input = 0;
+    // scanf(" %c", &input);
     map_reset();
 
     switch (input)
@@ -552,7 +556,7 @@ void game_display_pick_map()
 void game_display_gameover()
 {
     printf("\033[H\033[J");
-    printf("GAME OVER\n");
+    printf("~NEW GAME~ \n");
     printf("GOOD LUCK\n");
     sleep(1);
 }
@@ -573,7 +577,7 @@ void *display(void *arg)
     }
     printf("\033[H\033[J");
     printf("YOU DIED\n");
-    printf("Press any key to continue\n");
+    printf("Press key B to continue\n");
     return NULL;
 }
 
@@ -600,71 +604,158 @@ void *control(void *arg)
     static struct termios oldt, newt;
     while (DIED_STATUS != snake_game_status)
     {
-
+        
         tcgetattr(STDIN_FILENO, &oldt);
         newt = oldt;
         newt.c_lflag &= ~(ICANON);
         tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-
-        char input = getchar();
-        if (STATIC_STATUS != snake_moving_status)
+        if ( QUIT == get_dir_of_xbox()) return NULL;
+        
+        input = getchar();
+        if ('p' != input || get_dir_of_xbox() != PAUSE)
         {
-            if ((('a' == input) || (LEFT == Xbox_Direction)) && (MOVING_RIGHT != snake_moving_type))
+            snake_game_status = PLAYING_STATUS;
+            //set_dir_of_xbox(EMPTY);
+        }
+         
+        if ((STATIC_STATUS != snake_moving_status) && (PLAYING_STATUS == snake_game_status))
+        {
+
+            if (('a' == input) && (MOVING_RIGHT != snake_moving_type))
+            {
+                //pthread_mutex_lock(&mutex);
                 snake_moving_type = MOVING_LEFT;
-            else if ((('s' == input) || (DOWN == Xbox_Direction)) && (MOVING_UP != snake_moving_type))
+                
+                set_dir_of_xbox(LEFT);
+                //pthread_mutex_unlock(&mutex);
+            }
+            else if (('s' == input) && (MOVING_UP != snake_moving_type))
+            {
+                //pthread_mutex_lock(&mutex);
                 snake_moving_type = MOVING_DOWN;
-            else if ((('d' == input) || (RIGHT == Xbox_Direction)) && (MOVING_LEFT != snake_moving_type))
+                set_dir_of_xbox(DOWN);
+                //pthread_mutex_unlock(&mutex);
+            }
+            else if (('d' == input) && (MOVING_LEFT != snake_moving_type))
+            {
+                //pthread_mutex_lock(&mutex);
                 snake_moving_type = MOVING_RIGHT;
-            else if ((('w' == input) || (UP == Xbox_Direction)) && (MOVING_DOWN != snake_moving_type))
+                set_dir_of_xbox(RIGHT);
+                //pthread_mutex_unlock(&mutex);
+            }
+            else if (('w' == input) && (MOVING_DOWN != snake_moving_type))
+            {
+               // pthread_mutex_lock(&mutex);
                 snake_moving_type = MOVING_UP;
+                set_dir_of_xbox(UP);
+                //pthread_mutex_unlock(&mutex);
+            }
 
             snake_moving_status = STATIC_STATUS;
-            // usleep(100000);
+            //usleep(10000);
         }
-        if ('p' == input && (PLAYING_STATUS == snake_game_status))
-            snake_game_status = PAUSE_STAUS;
-        else if ('p' == input && (PAUSE_STAUS == snake_game_status))
-            snake_game_status = PLAYING_STATUS;
-        else if ('q' == input && (PAUSE_STAUS == snake_game_status))
+        //pthread_mutex_lock(&mutex);
+        // if ('p' == input && (PLAYING_STATUS == snake_game_status))
+        //     snake_game_status = PAUSE_STAUS;
+        // //else if ('p' == input && (PAUSE_STAUS == snake_game_status))
+        // //   snake_game_status = PLAYING_STATUS;
+        if ('q' == input)
         {
             snake_game_status = DIED_STATUS;
             snake_game_life = 0;
         }
+        //pthread_mutex_unlock(&mutex);
         tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     }
+    
+    pthread_exit((void *)1);
     return NULL;
 }
 void *get_Dir_From_Xbox(void *arg)
 {
-    if (true == isOpen)
+    while (DIED_STATUS != snake_game_status)
     {
-        Xbox_Direction = get_Direction();
-        if ((LEFT == Xbox_Direction) && (MOVING_RIGHT != snake_moving_type))
-            snake_moving_type = MOVING_LEFT;
-        else if ((DOWN == Xbox_Direction) && (MOVING_UP != snake_moving_type))
-            snake_moving_type = MOVING_DOWN;
-        else if ((RIGHT == Xbox_Direction) && (MOVING_LEFT != snake_moving_type))
-            snake_moving_type = MOVING_RIGHT;
-        else if ((UP == Xbox_Direction) && (MOVING_DOWN != snake_moving_type))
-            snake_moving_type = MOVING_UP;
+        if (true == isOpen)
+        {
+            //printf("trong ham get direction\n");
+
+            //printf("trong while direction\n");
+
+            Xbox_Direction = get_Direction();
+
+            //system("echo \"direction: $(Xbox_Direction)\" >> debug.txt");
+            //printf("Direction: %d\n", Xbox_Direction);
+            if (PLAYING_STATUS == snake_game_status)
+            {
+                if ((LEFT == Xbox_Direction) && (MOVING_RIGHT != snake_moving_type))
+                {
+                    snake_moving_type = MOVING_LEFT;
+                }
+                else if ((DOWN == Xbox_Direction) && (MOVING_UP != snake_moving_type))
+                {
+                    snake_moving_type = MOVING_DOWN;
+                }
+                else if ((RIGHT == Xbox_Direction) && (MOVING_LEFT != snake_moving_type))
+                {
+                    snake_moving_type = MOVING_RIGHT;
+                }
+                else if ((UP == Xbox_Direction) && (MOVING_DOWN != snake_moving_type))
+                {
+                    snake_moving_type = MOVING_UP;
+                }
+            }
+            //pthread_mutex_lock(&mutex);
+            if ((PAUSE == Xbox_Direction) && (PLAYING_STATUS == snake_game_status))
+            {
+                snake_game_status = PAUSE_STAUS;
+                input = 'p';
+            }
+            
+            if (PAUSE != Xbox_Direction)
+            {
+                snake_game_status = PLAYING_STATUS;
+            }
+            if ((QUIT == Xbox_Direction))
+            {
+                pthread_mutex_lock(&mutex);
+                input = 'q';
+                snake_game_status = DIED_STATUS;
+                snake_game_life = 0;
+                pthread_mutex_unlock(&mutex);
+                break;
+            }
+            
+            //pthread_mutex_unlock(&mutex);
+            // else if ((PAUSE == Xbox_Direction) && (PAUSE_STAUS == snake_game_status))
+            // {
+            //     set_dir_of_xbox(enum dir); = EMPTY;
+            //     snake_game_status = PLAYING_STATUS;
+            // }
+        }
+
+        else
+        {
+            isOpen = open_Device();
+        }
     }
-    else
-    {
-        isOpen = open_Device();
-    }
+    set_dir_of_xbox(EMPTY);
+    pthread_exit((void *)2);
+    return NULL;
 }
+
 int main(void)
 {
     uint8_t i;
     isOpen = open_Device();
     pthread_mutex_init(&mutex, NULL);
     pthread_t thread_id[4];
-
+    bind_key();
+    sleep(1);
     while (1)
     {
         game_display_pick_level();
         game_display_pick_map();
-        snake_game_life = 3;
+        snake_game_life = 1;
         while (snake_game_life > 0)
         {
             snake_head = snake_new_game(snake_head);
@@ -675,11 +766,9 @@ int main(void)
             pthread_create(&thread_id[1], NULL, backend, NULL);
             pthread_create(&thread_id[2], NULL, control, NULL);
             pthread_create(&thread_id[3], NULL, display, NULL);
-
-            for (i = 0; i < 4; i++)
-            {
-                pthread_join(thread_id[i], NULL);
-            }
+            pthread_join(thread_id[0], NULL);
+            pthread_join(thread_id[1], NULL);
+            pthread_join(thread_id[3], NULL);
             pthread_mutex_destroy(&mutex);
         }
         game_display_gameover();
